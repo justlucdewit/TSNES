@@ -331,6 +331,7 @@ export class CPU6502 {
     }
     return 0;
   }
+
   BVS() {
     // branch if not overflow
     if (this.GetFlag(Flags.V)) {
@@ -345,6 +346,7 @@ export class CPU6502 {
     }
     return 0;
   }
+
   CLC() {
     return 0;
   }
