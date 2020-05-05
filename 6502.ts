@@ -1,5 +1,4 @@
 import { Bus } from "./bus";
-import O from "./opcodes";
 
 enum Flags {
   C, // carry
@@ -29,7 +28,16 @@ export class CPU6502 {
   cycles = 0;
 
   // registers
-  status: Flags;
+  status = {
+    C: false,
+    Z: false,
+    I: false,
+    D: false,
+    B: false,
+    U: false,
+    V: false,
+    N: false,
+  };
   pc = 0;
   sc = 0;
   a = 0;
@@ -205,8 +213,8 @@ export class CPU6502 {
     // bitwise and
     this.fetch();
     this.a &= this.fetched;
-    this.SetFlag(Flags.Z, this.a === 0x00); // zero flag
-    this.SetFlag(Flags.N, this.a & 0x80); // negative flag
+    this.SetFlag(Flags.Z, this.a === 0x00 ? true : false); // zero flag
+    this.SetFlag(Flags.N, this.a & 0x80 ? true : false); // negative flag
     return 1;
   }
 
@@ -214,35 +222,127 @@ export class CPU6502 {
     return 0;
   }
   BCC() {
+    // branch if carry clear
+    if (!this.GetFlag(Flags.C)) {
+      this.cycles++;
+      this.addr_abs = this.pc + this.addr_rel;
+
+      if ((this.addr_abs & 0xff00) != (this.pc & 0xff00)) {
+        this.cycles++;
+      }
+
+      this.pc = this.addr_abs;
+    }
     return 0;
   }
 
   BCS() {
-    // branch if cary is set
+    // branch if carry
+    if (this.GetFlag(Flags.C)) {
+      this.cycles++;
+      this.addr_abs = this.pc + this.addr_rel;
+
+      if ((this.addr_abs & 0xff00) != (this.pc & 0xff00)) {
+        this.cycles++;
+      }
+
+      this.pc = this.addr_abs;
+    }
     return 0;
   }
   BEQ() {
+    // branch if equal
+    if (this.GetFlag(Flags.Z)) {
+      this.cycles++;
+      this.addr_abs = this.pc + this.addr_rel;
+
+      if ((this.addr_abs & 0xff00) != (this.pc & 0xff00)) {
+        this.cycles++;
+      }
+
+      this.pc = this.addr_abs;
+    }
     return 0;
   }
+
   BIT() {
     return 0;
   }
+
   BMI() {
+    // branch if negative
+    if (this.GetFlag(Flags.N)) {
+      this.cycles++;
+      this.addr_abs = this.pc + this.addr_rel;
+
+      if ((this.addr_abs & 0xff00) != (this.pc & 0xff00)) {
+        this.cycles++;
+      }
+
+      this.pc = this.addr_abs;
+    }
     return 0;
   }
+
   BNE() {
+    // branch if not equal
+    if (!this.GetFlag(Flags.Z)) {
+      this.cycles++;
+      this.addr_abs = this.pc + this.addr_rel;
+
+      if ((this.addr_abs & 0xff00) != (this.pc & 0xff00)) {
+        this.cycles++;
+      }
+
+      this.pc = this.addr_abs;
+    }
     return 0;
   }
+
   BPL() {
+    // branch if not equal
+    if (!this.GetFlag(Flags.N)) {
+      this.cycles++;
+      this.addr_abs = this.pc + this.addr_rel;
+
+      if ((this.addr_abs & 0xff00) != (this.pc & 0xff00)) {
+        this.cycles++;
+      }
+
+      this.pc = this.addr_abs;
+    }
     return 0;
   }
+
   BRK() {
     return 0;
   }
   BVC() {
+    // branch if overflow
+    if (!this.GetFlag(Flags.V)) {
+      this.cycles++;
+      this.addr_abs = this.pc + this.addr_rel;
+
+      if ((this.addr_abs & 0xff00) != (this.pc & 0xff00)) {
+        this.cycles++;
+      }
+
+      this.pc = this.addr_abs;
+    }
     return 0;
   }
   BVS() {
+    // branch if not overflow
+    if (this.GetFlag(Flags.V)) {
+      this.cycles++;
+      this.addr_abs = this.pc + this.addr_rel;
+
+      if ((this.addr_abs & 0xff00) != (this.pc & 0xff00)) {
+        this.cycles++;
+      }
+
+      this.pc = this.addr_abs;
+    }
     return 0;
   }
   CLC() {
@@ -644,11 +744,61 @@ export class CPU6502 {
     this.bus = bus;
   }
 
-  GetFlag() {}
+  GetFlag(flagName: Flags) {
+    switch (flagName) {
+      case Flags.B:
+        return this.status.B;
+      case Flags.C:
+        return this.status.C;
+      case Flags.D:
+        return this.status.D;
+      case Flags.I:
+        return this.status.I;
+      case Flags.N:
+        return this.status.N;
+      case Flags.U:
+        return this.status.U;
+      case Flags.V:
+        return this.status.V;
+      case Flags.Z:
+        return this.status.Z;
+    }
+  }
 
-  SetFlag(flag: Flags, statement) {
-    if (statement) {
-      this.status = flag;
+  SetFlag(flag: Flags, state: boolean) {
+    switch (flag) {
+      case Flags.B: {
+        this.status.B = state;
+        break;
+      }
+      case Flags.C: {
+        this.status.C = state;
+        break;
+      }
+      case Flags.D: {
+        this.status.D = state;
+        break;
+      }
+      case Flags.I: {
+        this.status.I = state;
+        break;
+      }
+      case Flags.N: {
+        this.status.N = state;
+        break;
+      }
+      case Flags.U: {
+        this.status.U = state;
+        break;
+      }
+      case Flags.V: {
+        this.status.V = state;
+        break;
+      }
+      case Flags.Z: {
+        this.status.Z = state;
+        break;
+      }
     }
   }
 
