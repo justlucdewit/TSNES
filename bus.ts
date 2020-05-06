@@ -2,13 +2,8 @@ import { CPU6502 } from "./6502";
 
 export class Bus {
   // devices
-  RAM: ArrayBuffer;
-  CPU: CPU6502;
-
-  Bus() {
-    this.CPU = new CPU6502();
-    this.RAM = new ArrayBuffer(64 * 1024);
-  }
+  test = 8;
+  RAM = new Uint8Array(64 * 1024);
 
   write(adress: number, data: number) {
     if (adress >= 0x0 && adress <= 0xffff) {

@@ -19,7 +19,7 @@ interface Instruction {
 }
 
 export class CPU6502 {
-  bus: Bus = undefined;
+  bus: Bus = new Bus();
 
   fetched = 0;
   addr_rel = 0;
@@ -46,41 +46,41 @@ export class CPU6502 {
   y = 0;
 
   // adressing modes
-  IMP() {
+  IMP = () => {
     // implied
     this.fetched = this.a;
     return 0;
-  }
+  };
 
-  IMM() {
+  IMM = () => {
     // immediate
     this.addr_abs = this.pc;
     this.pc++;
     return 0;
-  }
+  };
 
-  ZP0() {
+  ZP0 = () => {
     // zero page
     this.addr_abs = this.read(this.pc) & 0x00ff;
     this.pc++;
     return 0;
-  }
+  };
 
-  ZPX() {
+  ZPX = () => {
     // zero page with offset from X register
     this.addr_abs = this.read(this.pc + this.x) & 0x00ff;
     this.pc++;
     return 0;
-  }
+  };
 
-  ZPY() {
+  ZPY = () => {
     // zero page with offset from Y register
     this.addr_abs = this.read(this.pc + this.y) & 0x00ff;
     this.pc++;
     return 0;
-  }
+  };
 
-  REL() {
+  REL = () => {
     // relative
     this.addr_rel = this.read(this.pc);
     this.pc++;
@@ -88,9 +88,9 @@ export class CPU6502 {
       this.addr_rel |= 0xff00;
     }
     return 0;
-  }
+  };
 
-  ABS() {
+  ABS = () => {
     // absolute
     const low = this.read(this.pc);
     this.pc++;
@@ -99,9 +99,9 @@ export class CPU6502 {
 
     this.addr_abs = (high << 8) | low;
     return 0;
-  }
+  };
 
-  ABX() {
+  ABX = () => {
     // absolute with offset from X register
     const low = this.read(this.pc);
     this.pc++;
@@ -114,9 +114,9 @@ export class CPU6502 {
       return 1;
     }
     return 0;
-  }
+  };
 
-  ABY() {
+  ABY = () => {
     // absolute with offset from Y register
     const low = this.read(this.pc);
     this.pc++;
@@ -128,9 +128,9 @@ export class CPU6502 {
       return 1;
     }
     return 0;
-  }
+  };
 
-  IND() {
+  IND = () => {
     // indirect
     const ptr_low = this.read(this.pc);
     this.pc++;
@@ -147,9 +147,9 @@ export class CPU6502 {
     }
 
     return 0;
-  }
+  };
 
-  IZX() {
+  IZX = () => {
     // indirect zeropage offset from X
     const t = this.read(this.pc);
     this.pc++;
@@ -164,9 +164,9 @@ export class CPU6502 {
     } else {
       return 0;
     }
-  }
+  };
 
-  IZY() {
+  IZY = () => {
     // indirect zeropage offset from Y
     const t = this.read(this.pc);
     this.pc++;
@@ -181,9 +181,9 @@ export class CPU6502 {
     } else {
       return 0;
     }
-  }
+  };
 
-  cycle() {
+  cycle = () => {
     if (this.cycles === 0) {
       this.opcode = this.read(this.pc);
       this.pc++;
@@ -194,8 +194,8 @@ export class CPU6502 {
       this.cycles += extraCycles1 & extraCycles2;
     }
     this.cycles--;
-  }
-  reset() {
+  };
+  reset = () => {
     this.a = 0;
     this.x = 0;
     this.y = 0;
@@ -212,9 +212,9 @@ export class CPU6502 {
     this.fetched = 0x00;
 
     this.cycles = 8;
-  }
+  };
 
-  requestInterupt() {
+  requestInterupt = () => {
     if (!this.GetFlag(Flags.I)) {
       this.write(0x0100 + this.sp, (this.pc >> 8) & 0x00ff);
       this.sp--;
@@ -234,9 +234,9 @@ export class CPU6502 {
       this.pc = (high << 8) | low;
       this.cycles = 7;
     }
-  }
+  };
 
-  nonMascableInterupt() {
+  nonMascableInterupt = () => {
     this.write(0x0100 + this.sp, (this.pc >> 8) & 0x00ff);
     this.sp--;
     this.write(0x0100 + this.sp, this.pc & 0x00ff);
@@ -254,18 +254,18 @@ export class CPU6502 {
 
     this.pc = (high << 8) | low;
     this.cycles = 8;
-  }
+  };
 
-  fetch() {
+  fetch = () => {
     if (!(this.lookup[this.opcode][1] == this.IMP)) {
       // current opcode isnt in imply mode
       this.fetched = this.read(this.addr_abs);
     }
-  }
+  };
 
   //opcodes
 
-  ADC() {
+  ADC = () => {
     // addition
     this.fetch();
     const result = this.a + this.fetched + (this.GetFlag(Flags.C) ? 1 : 0);
@@ -278,21 +278,21 @@ export class CPU6502 {
     ); // set overflow flag
     this.a = result & 0x00ff;
     return 1;
-  }
+  };
 
-  AND() {
+  AND = () => {
     // bitwise and
     this.fetch();
     this.a &= this.fetched;
     this.SetFlag(Flags.Z, this.a === 0x00 ? true : false); // zero flag
     this.SetFlag(Flags.N, this.a & 0x80 ? true : false); // negative flag
     return 1;
-  }
+  };
 
-  ASL() {
+  ASL = () => {
     return 0;
-  }
-  BCC() {
+  };
+  BCC = () => {
     // branch if carry clear
     if (!this.GetFlag(Flags.C)) {
       this.cycles++;
@@ -305,9 +305,9 @@ export class CPU6502 {
       this.pc = this.addr_abs;
     }
     return 0;
-  }
+  };
 
-  BCS() {
+  BCS = () => {
     // branch if carry
     if (this.GetFlag(Flags.C)) {
       this.cycles++;
@@ -320,8 +320,8 @@ export class CPU6502 {
       this.pc = this.addr_abs;
     }
     return 0;
-  }
-  BEQ() {
+  };
+  BEQ = () => {
     // branch if equal
     if (this.GetFlag(Flags.Z)) {
       this.cycles++;
@@ -334,13 +334,13 @@ export class CPU6502 {
       this.pc = this.addr_abs;
     }
     return 0;
-  }
+  };
 
-  BIT() {
+  BIT = () => {
     return 0;
-  }
+  };
 
-  BMI() {
+  BMI = () => {
     // branch if negative
     if (this.GetFlag(Flags.N)) {
       this.cycles++;
@@ -353,9 +353,9 @@ export class CPU6502 {
       this.pc = this.addr_abs;
     }
     return 0;
-  }
+  };
 
-  BNE() {
+  BNE = () => {
     // branch if not equal
     if (!this.GetFlag(Flags.Z)) {
       this.cycles++;
@@ -368,9 +368,9 @@ export class CPU6502 {
       this.pc = this.addr_abs;
     }
     return 0;
-  }
+  };
 
-  BPL() {
+  BPL = () => {
     // branch if not equal
     if (!this.GetFlag(Flags.N)) {
       this.cycles++;
@@ -383,12 +383,12 @@ export class CPU6502 {
       this.pc = this.addr_abs;
     }
     return 0;
-  }
+  };
 
-  BRK() {
+  BRK = () => {
     return 0;
-  }
-  BVC() {
+  };
+  BVC = () => {
     // branch if overflow
     if (!this.GetFlag(Flags.V)) {
       this.cycles++;
@@ -401,9 +401,9 @@ export class CPU6502 {
       this.pc = this.addr_abs;
     }
     return 0;
-  }
+  };
 
-  BVS() {
+  BVS = () => {
     // branch if not overflow
     if (this.GetFlag(Flags.V)) {
       this.cycles++;
@@ -416,109 +416,128 @@ export class CPU6502 {
       this.pc = this.addr_abs;
     }
     return 0;
-  }
+  };
 
-  CLC() {
+  CLC = () => {
     // clear cary
     this.SetFlag(Flags.C, false);
     return 0;
-  }
-  CLD() {
+  };
+  CLD = () => {
     // clear decimal mode
     this.SetFlag(Flags.D, false);
     return 0;
-  }
-  CLI() {
+  };
+  CLI = () => {
     //clear disable interupts
     this.SetFlag(Flags.I, false);
     return 0;
-  }
-  CLV() {
+  };
+  CLV = () => {
     // clear overflow
     this.SetFlag(Flags.V, false);
     return 0;
-  }
-  CMP() {
+  };
+  CMP = () => {
     return 0;
-  }
-  CPX() {
+  };
+  CPX = () => {
     return 0;
-  }
-  CPY() {
+  };
+  CPY = () => {
     return 0;
-  }
-  DEC() {
+  };
+  DEC = () => {
     return 0;
-  }
-  DEX() {
+  };
+  DEX = () => {
     return 0;
-  }
-  DEY() {
+  };
+  DEY = () => {
     return 0;
-  }
-  EOR() {
+  };
+  EOR = () => {
     return 0;
-  }
-  INC() {
+  };
+  INC = () => {
     return 0;
-  }
-  INX() {
+  };
+  INX = () => {
     return 0;
-  }
-  INY() {
+  };
+  INY = () => {
     return 0;
-  }
-  JMP() {
+  };
+  JMP = () => {
     return 0;
-  }
-  JSR() {
+  };
+  JSR = () => {
     return 0;
-  }
-  LDA() {
+  };
+
+  LDA = () => {
+    // load to a
+    this.fetch();
+    this.a = this.fetched;
+    this.SetFlag(Flags.Z, this.fetched == 0x00);
+    this.SetFlag(Flags.N, (this.fetched & 0x80) != 0);
+    return 1;
+  };
+
+  LDX = () => {
+    // load to x
+    this.fetch();
+    this.x = this.fetched;
+    this.SetFlag(Flags.Z, this.fetched == 0x00);
+    this.SetFlag(Flags.N, (this.fetched & 0x80) != 0);
+    return 1;
+  };
+
+  LDY = () => {
+    // load to y
+    this.fetch();
+    this.y = this.fetched;
+    this.SetFlag(Flags.Z, this.fetched == 0x00);
+    this.SetFlag(Flags.N, (this.fetched & 0x80) != 0);
+    return 1;
+  };
+
+  LSR = () => {
     return 0;
-  }
-  LDX() {
+  };
+  NOP = () => {
     return 0;
-  }
-  LDY() {
+  };
+  ORA = () => {
     return 0;
-  }
-  LSR() {
-    return 0;
-  }
-  NOP() {
-    return 0;
-  }
-  ORA() {
-    return 0;
-  }
-  PHA() {
+  };
+  PHA = () => {
     // push accumulator to stack
     this.write(0x0100 + this.sp, this.a);
     this.sp--;
     return 0;
-  }
-  PHP() {
+  };
+  PHP = () => {
     return 0;
-  }
-  PLA() {
+  };
+  PLA = () => {
     // pop stack to A
     this.sp++;
     this.a = this.read(0x0100 + this.sp);
     this.SetFlag(Flags.Z, this.a == 0x00);
     this.SetFlag(Flags.N, (this.a & 0x80) != 0);
     return 0;
-  }
-  PLP() {
+  };
+  PLP = () => {
     return 0;
-  }
-  ROL() {
+  };
+  ROL = () => {
     return 0;
-  }
-  ROR() {
+  };
+  ROR = () => {
     return 0;
-  }
-  RTI() {
+  };
+  RTI = () => {
     this.sp++;
     this.status = this.read(0x0100 + this.sp);
     this.status &= ~Flags.B;
@@ -529,11 +548,11 @@ export class CPU6502 {
     this.sp++;
     this.pc |= this.read(0x100 + this.sp) << 8;
     return 0;
-  }
-  RTS() {
+  };
+  RTS = () => {
     return 0;
-  }
-  SBC() {
+  };
+  SBC = () => {
     // subtraction
     this.fetch();
     const value = this.fetched ^ 0x00ff;
@@ -545,50 +564,50 @@ export class CPU6502 {
     this.a = result & 0x00ff;
 
     return 1;
-  }
-  SEC() {
+  };
+  SEC = () => {
     return 0;
-  }
-  SED() {
+  };
+  SED = () => {
     return 0;
-  }
-  SEI() {
+  };
+  SEI = () => {
     return 0;
-  }
-  STA() {
+  };
+  STA = () => {
     return 0;
-  }
-  STX() {
+  };
+  STX = () => {
     return 0;
-  }
-  STY() {
+  };
+  STY = () => {
     return 0;
-  }
-  TAX() {
+  };
+  TAX = () => {
     return 0;
-  }
-  TAY() {
+  };
+  TAY = () => {
     return 0;
-  }
-  TSX() {
+  };
+  TSX = () => {
     return 0;
-  }
-  TXA() {
+  };
+  TXA = () => {
     return 0;
-  }
-  TXS() {
+  };
+  TXS = () => {
     return 0;
-  }
-  TYA() {
+  };
+  TYA = () => {
     return 0;
-  }
-  XXX() {
+  };
+  XXX = () => {
     return 0;
-  }
+  };
 
   // lookup table
   // [FUNCTION, MODE, CYCLES]
-  lookup = {
+  lookup: Record<number, [() => number, () => number, number]> = {
     0x00: [this.BRK, this.IMM, 7],
     0x01: [this.ORA, this.IZX, 6],
     0x02: [this.XXX, this.IMP, 2],
@@ -908,6 +927,13 @@ export class CPU6502 {
         break;
       }
     }
+  }
+
+  loadProgram(base: number, program: Array<number>) {
+    for (let bitIndex = 0; bitIndex < program.length; bitIndex++) {
+      this.write(base + bitIndex, program[bitIndex]);
+    }
+    this.pc = base;
   }
 
   write(adress: number, data: number) {
