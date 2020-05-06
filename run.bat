@@ -1,0 +1,2 @@
+tsc main
+node main

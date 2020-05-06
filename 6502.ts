@@ -26,9 +26,10 @@ export class CPU6502 {
   addr_abs = 0;
   opcode = 0;
   cycles = 0;
+  status = 0x00;
 
   // registers
-  status = {
+  flags = {
     C: false,
     Z: false,
     I: false,
@@ -39,7 +40,7 @@ export class CPU6502 {
     N: false,
   };
   pc = 0;
-  sc = 0;
+  sp = 0;
   a = 0;
   x = 0;
   y = 0;
@@ -194,9 +195,67 @@ export class CPU6502 {
     }
     this.cycles--;
   }
-  reset() {}
-  requestInterupt() {}
-  nonMascableInterupt() {}
+  reset() {
+    this.a = 0;
+    this.x = 0;
+    this.y = 0;
+    this.sp = 0xfd;
+    this.status = 0x00 | (this.flags.U ? 1 : 0);
+    this.addr_abs = 0xfffc;
+    const low = this.read(this.addr_abs);
+    const high = this.read(this.addr_abs + 1);
+
+    this.pc = (high << 8) | low;
+
+    this.addr_rel = 0x0000;
+    this.addr_abs = 0x0000;
+    this.fetched = 0x00;
+
+    this.cycles = 8;
+  }
+
+  requestInterupt() {
+    if (!this.GetFlag(Flags.I)) {
+      this.write(0x0100 + this.sp, (this.pc >> 8) & 0x00ff);
+      this.sp--;
+      this.write(0x0100 + this.sp, this.pc & 0x00ff);
+      this.sp--;
+
+      this.SetFlag(Flags.B, false);
+      this.SetFlag(Flags.U, true);
+      this.SetFlag(Flags.I, true);
+      this.write(0x0100 + this.sp, this.status);
+      this.sp--;
+
+      this.addr_abs = 0xfffe;
+      const low = this.read(this.addr_abs);
+      const high = this.read(this.addr_abs + 1);
+
+      this.pc = (high << 8) | low;
+      this.cycles = 7;
+    }
+  }
+
+  nonMascableInterupt() {
+    this.write(0x0100 + this.sp, (this.pc >> 8) & 0x00ff);
+    this.sp--;
+    this.write(0x0100 + this.sp, this.pc & 0x00ff);
+    this.sp--;
+
+    this.SetFlag(Flags.B, false);
+    this.SetFlag(Flags.U, true);
+    this.SetFlag(Flags.I, true);
+    this.write(0x0100 + this.sp, this.status);
+    this.sp--;
+
+    this.addr_abs = 0xfffe;
+    const low = this.read(this.addr_abs);
+    const high = this.read(this.addr_abs + 1);
+
+    this.pc = (high << 8) | low;
+    this.cycles = 8;
+  }
+
   fetch() {
     if (!(this.lookup[this.opcode][1] == this.IMP)) {
       // current opcode isnt in imply mode
@@ -205,8 +264,20 @@ export class CPU6502 {
   }
 
   //opcodes
+
   ADC() {
-    return 0;
+    // addition
+    this.fetch();
+    const result = this.a + this.fetched + (this.GetFlag(Flags.C) ? 1 : 0);
+    this.SetFlag(Flags.C, result > 255); // set carry bit
+    this.SetFlag(Flags.Z, (result & 0x00ff) == 0); // set zero flag
+    this.SetFlag(Flags.N, (result & 0x80) != 0); // negative flag
+    this.SetFlag(
+      Flags.V,
+      (~(this.a ^ this.fetched) & (this.a ^ result) & 0x0080) != 0
+    ); // set overflow flag
+    this.a = result & 0x00ff;
+    return 1;
   }
 
   AND() {
@@ -348,15 +419,23 @@ export class CPU6502 {
   }
 
   CLC() {
+    // clear cary
+    this.SetFlag(Flags.C, false);
     return 0;
   }
   CLD() {
+    // clear decimal mode
+    this.SetFlag(Flags.D, false);
     return 0;
   }
   CLI() {
+    //clear disable interupts
+    this.SetFlag(Flags.I, false);
     return 0;
   }
   CLV() {
+    // clear overflow
+    this.SetFlag(Flags.V, false);
     return 0;
   }
   CMP() {
@@ -414,12 +493,20 @@ export class CPU6502 {
     return 0;
   }
   PHA() {
+    // push accumulator to stack
+    this.write(0x0100 + this.sp, this.a);
+    this.sp--;
     return 0;
   }
   PHP() {
     return 0;
   }
   PLA() {
+    // pop stack to A
+    this.sp++;
+    this.a = this.read(0x0100 + this.sp);
+    this.SetFlag(Flags.Z, this.a == 0x00);
+    this.SetFlag(Flags.N, (this.a & 0x80) != 0);
     return 0;
   }
   PLP() {
@@ -432,13 +519,32 @@ export class CPU6502 {
     return 0;
   }
   RTI() {
+    this.sp++;
+    this.status = this.read(0x0100 + this.sp);
+    this.status &= ~Flags.B;
+    this.status &= ~Flags.U;
+
+    this.sp++;
+    this.pc = this.read(0x100 + this.sp);
+    this.sp++;
+    this.pc |= this.read(0x100 + this.sp) << 8;
     return 0;
   }
   RTS() {
     return 0;
   }
   SBC() {
-    return 0;
+    // subtraction
+    this.fetch();
+    const value = this.fetched ^ 0x00ff;
+    const result = this.a + value + (this.GetFlag(Flags.C) ? 1 : 0);
+    this.SetFlag(Flags.C, (result & 0xff00) != 0); // set carry bit
+    this.SetFlag(Flags.Z, (result & 0x00ff) == 0); // set zero flag
+    this.SetFlag(Flags.N, (result & 0x0080) != 0); // negative flag
+    this.SetFlag(Flags.V, ((result ^ this.a) & (result ^ value) & 0x0080) != 0); // set overflow flag
+    this.a = result & 0x00ff;
+
+    return 1;
   }
   SEC() {
     return 0;
@@ -749,56 +855,56 @@ export class CPU6502 {
   GetFlag(flagName: Flags) {
     switch (flagName) {
       case Flags.B:
-        return this.status.B;
+        return this.flags.B;
       case Flags.C:
-        return this.status.C;
+        return this.flags.C;
       case Flags.D:
-        return this.status.D;
+        return this.flags.D;
       case Flags.I:
-        return this.status.I;
+        return this.flags.I;
       case Flags.N:
-        return this.status.N;
+        return this.flags.N;
       case Flags.U:
-        return this.status.U;
+        return this.flags.U;
       case Flags.V:
-        return this.status.V;
+        return this.flags.V;
       case Flags.Z:
-        return this.status.Z;
+        return this.flags.Z;
     }
   }
 
   SetFlag(flag: Flags, state: boolean) {
     switch (flag) {
       case Flags.B: {
-        this.status.B = state;
+        this.flags.B = state;
         break;
       }
       case Flags.C: {
-        this.status.C = state;
+        this.flags.C = state;
         break;
       }
       case Flags.D: {
-        this.status.D = state;
+        this.flags.D = state;
         break;
       }
       case Flags.I: {
-        this.status.I = state;
+        this.flags.I = state;
         break;
       }
       case Flags.N: {
-        this.status.N = state;
+        this.flags.N = state;
         break;
       }
       case Flags.U: {
-        this.status.U = state;
+        this.flags.U = state;
         break;
       }
       case Flags.V: {
-        this.status.V = state;
+        this.flags.V = state;
         break;
       }
       case Flags.Z: {
-        this.status.Z = state;
+        this.flags.Z = state;
         break;
       }
     }
