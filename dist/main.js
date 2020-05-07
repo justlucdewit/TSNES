@@ -117,45 +117,10 @@ parcelRequire = (function (modules, cache, entry, globalName) {
   }
 
   return newRequire;
-})({"bus.ts":[function(require,module,exports) {
+})({"6502.ts":[function(require,module,exports) {
 "use strict";
 
 exports.__esModule = true;
-
-var Bus =
-/** @class */
-function () {
-  function Bus() {
-    // devices
-    this.test = 8;
-    this.RAM = new Uint8Array(64 * 1024);
-  }
-
-  Bus.prototype.write = function (adress, data) {
-    if (adress >= 0x0 && adress <= 0xffff) {
-      this.RAM[adress] = data;
-    }
-  };
-
-  Bus.prototype.read = function (adress, readOnly) {
-    if (adress >= 0x0 && adress <= 0xffff) {
-      return this.RAM[adress];
-    }
-
-    return 0x0;
-  };
-
-  return Bus;
-}();
-
-exports.Bus = Bus;
-},{}],"6502.ts":[function(require,module,exports) {
-"use strict";
-
-exports.__esModule = true;
-
-var bus_1 = require("./bus");
-
 var Flags;
 
 (function (Flags) {
@@ -175,7 +140,6 @@ function () {
   function CPU6502() {
     var _this = this;
 
-    this.bus = new bus_1.Bus();
     this.fetched = 0;
     this.addr_rel = 0;
     this.addr_abs = 0;
@@ -1186,12 +1150,7 @@ function () {
       0xfe: [this.INC, this.ABX, 7],
       0xff: [this.XXX, this.IMP, 7]
     };
-  } // public methods
-
-
-  CPU6502.prototype.connectBus = function (bus) {
-    this.bus = bus;
-  };
+  }
 
   CPU6502.prototype.GetFlag = function (flagName) {
     switch (flagName) {
@@ -1290,7 +1249,9 @@ function () {
   };
 
   CPU6502.prototype.write = function (adress, data) {
-    this.bus.write(adress, data);
+    if (this.bus != undefined) {
+      this.bus.cpuWrite(adress, data);
+    }
   };
 
   CPU6502.prototype.read = function (adress, readOnly) {
@@ -1298,235 +1259,496 @@ function () {
       readOnly = false;
     }
 
-    return this.bus.read(adress, readOnly);
+    return this.bus != undefined ? this.bus.cpuRead(adress, readOnly) : 0x00;
   };
 
   return CPU6502;
 }();
 
 exports.CPU6502 = CPU6502;
-},{"./bus":"bus.ts"}],"6502debug.ts":[function(require,module,exports) {
+},{}],"PPU.ts":[function(require,module,exports) {
 "use strict";
 
 exports.__esModule = true;
 
-function fillInHex(hex, count) {
-  return "0".repeat(count - hex.length) + hex;
-}
+var PPU =
+/** @class */
+function () {
+  function PPU() {
+    this.tNameSpaces = [new Uint8Array(1024), new Uint8Array(1024)];
+    this.tPalette = [new Uint8Array(32)];
+    this.tPattern = [new Uint8Array(4096), new Uint8Array(4096)]; // normally in cartridge
+  }
 
-exports.fillInHex = fillInHex;
+  PPU.prototype.cpuWrite = function (adress, data) {
+    switch (adress) {
+      case 0:
+        {
+          break;
+        }
 
-var getRow = function getRow(ram, row, pc) {
-  var ret = "";
+      case 1:
+        {
+          break;
+        }
 
-  for (var i = 0; i < 16; i++) {
-    var newHex = fillInHex(ram[row + i].toString(16).toUpperCase(), 2);
+      case 2:
+        {
+          break;
+        }
 
-    if (row + i === pc) {
-      ret += "<span class='blue'>" + newHex + "</span> ";
-    } else {
-      ret += newHex + " ";
+      case 3:
+        {
+          break;
+        }
+
+      case 4:
+        {
+          break;
+        }
+
+      case 5:
+        {
+          break;
+        }
+
+      case 6:
+        {
+          break;
+        }
+
+      case 7:
+        {
+          break;
+        }
     }
-  }
+  };
 
-  return ret;
-};
+  PPU.prototype.cpuRead = function (adress, readOnly) {
+    if (readOnly === void 0) {
+      readOnly = false;
+    }
 
-function printPage(cpu, page) {
-  var ret = "";
+    var data = 0x00;
 
-  for (var i = 0; i < 16; i++) {
-    var n = fillInHex((page << 8 | i << 4).toString(16).toUpperCase(), 4);
-    var row = getRow(cpu.bus.RAM, parseInt(n, 16), cpu.pc);
-    ret += "[" + n + "]: " + row + "<br />";
-  }
+    switch (adress) {
+      case 0:
+        {
+          break;
+        }
 
-  return ret;
-}
+      case 1:
+        {
+          break;
+        }
 
-exports.printPage = printPage;
+      case 2:
+        {
+          break;
+        }
 
-function printRegisters(cpu) {
-  console.log("\nRegisters: \n    \tA: 0x" + fillInHex(cpu.a.toString(16), 2) + "\n    \tX: 0x" + fillInHex(cpu.x.toString(16), 2) + "\n    \tY: 0x" + fillInHex(cpu.y.toString(16), 2) + "\n    ");
-}
+      case 3:
+        {
+          break;
+        }
 
-exports.printRegisters = printRegisters;
+      case 4:
+        {
+          break;
+        }
 
-function printFlags(cpu) {
-  console.log("\nCPU flag Info:\n      carry:\t" + (cpu.GetFlag(0) ? "true" : "false") + "\n      zero:\t" + (cpu.GetFlag(1) ? "true" : "false") + "\n      interup:\t" + (cpu.GetFlag(2) ? "true" : "false") + "\n      decimal:\t" + (cpu.GetFlag(3) ? "true" : "false") + "\n      break:\t" + (cpu.GetFlag(4) ? "true" : "false") + "\n      unused:\t" + (cpu.GetFlag(5) ? "true" : "false") + "\n      overflow:\t" + (cpu.GetFlag(6) ? "true" : "false") + "\n      negative:\t" + (cpu.GetFlag(7) ? "true" : "false") + "\n      ");
-}
+      case 5:
+        {
+          break;
+        }
 
-exports.printFlags = printFlags;
+      case 6:
+        {
+          break;
+        }
 
-function printInfo(cpu) {
-  console.log("\nCPU Info:\n    \tclock cycles: " + cpu.totalCycles + "\n    \treading at: 0x" + cpu.pc.toString(16) + "\n    ");
-}
+      case 7:
+        {
+          break;
+        }
+    }
 
-exports.printInfo = printInfo;
-},{}],"main.ts":[function(require,module,exports) {
+    return data;
+  };
+
+  PPU.prototype.ppuWrite = function (adress, data) {};
+
+  PPU.prototype.ppuRead = function (adress, readOnly) {
+    if (readOnly === void 0) {
+      readOnly = false;
+    }
+
+    var data = 0x00;
+    adress &= 0x3fff;
+    return data;
+  };
+
+  PPU.prototype.connectCartridge = function (cart) {
+    this.cart = cart;
+  };
+
+  PPU.prototype.clock = function () {};
+
+  return PPU;
+}();
+
+exports.PPU = PPU;
+},{}],"bus.ts":[function(require,module,exports) {
 "use strict";
 
 exports.__esModule = true;
 
 var _6502_1 = require("./6502");
 
-var _6502debug_1 = require("./6502debug");
+var PPU_1 = require("./PPU");
 
-var cpu = new _6502_1.CPU6502();
-/*
-    *=$8000
-    LDX #10
-    STX $0000
-    LDX #3
-    STX $0001
-    LDY $0000
-    LDA #0
-    CLC
-    loop
-    ADC $0001
-    DEY
-    DNE loop
-    STA $0002
-    NOP
-    NOP
-    NOP
-*/
-
-var program = [//1:00:16
-0xa2, 0x0a, 0x8e, 0x00, 0x00, 0xa2, 0x03, 0x8e, 0x01, 0x00, 0xac, 0x00, 0x00, 0xa9, 0x00, 0x18, 0x6d, 0x01, 0x00, 0x88, 0xd0, 0xfa, 0x8d, 0x02, 0x00, 0xea, 0xea, 0xea];
-cpu.loadProgram(0x8000, program);
-var view = document.getElementById("view");
-var viewBar = document.getElementById("viewbar");
-var viewTitle = document.getElementById("viewtitle");
-var currentPage = "80";
-
-var updateTitle = function updateTitle() {
-  if (viewTitle != null) {
-    var newTitle = _6502debug_1.fillInHex(currentPage, 2);
-
-    viewTitle.innerHTML = "<h1><b>View on page 0x" + newTitle + ":</h1></b>";
+var Bus =
+/** @class */
+function () {
+  function Bus() {
+    // devices
+    this.cpu = new _6502_1.CPU6502();
+    this.cpuRAM = new Uint8Array(2048);
+    this.ppu = new PPU_1.PPU();
+    this.systemClockCounter = 0;
+    this.cpu.bus = this;
   }
-};
 
-updateTitle();
-
-if (viewBar != null) {
-  viewBar.innerHTML = "\n  <button id=\"back10\"><<</button>\n  <button id=\"back1\"><</button>\n  <button id=\"next1\">></button>\n  <button id=\"next10\">>></button>\n  <button id=\"step\">step</button>";
-}
-
-var setFlagColor = function setFlagColor(el, active) {
-  if (el != null) {
-    if (active) {
-      el.classList.remove("red");
-      el.classList.add("green");
-    } else {
-      el.classList.remove("green");
-      el.classList.add("red");
+  Bus.prototype.cpuWrite = function (adress, data) {
+    if (adress >= 0x00000 && adress <= 0x1fff) {
+      this.cpuRAM[adress & 0x07ff] = data;
+    } else if (adress >= 0x2000 && adress <= 0x3fff) {
+      this.ppu.cpuWrite(adress & 0x0007, data);
     }
-  }
-};
-
-var updateRegisters = function updateRegisters() {
-  var a = document.getElementById("regA");
-  var x = document.getElementById("regX");
-  var y = document.getElementById("regY");
-
-  if (a != null && x != null && y != null) {
-    x.innerHTML = "X = 0x" + _6502debug_1.fillInHex(cpu.x.toString(16), 2);
-    y.innerHTML = "Y = 0x" + _6502debug_1.fillInHex(cpu.y.toString(16), 2);
-    a.innerHTML = "A = 0x" + _6502debug_1.fillInHex(cpu.a.toString(16), 2);
-  }
-};
-
-updateRegisters();
-
-var updateFlags = function updateFlags() {
-  var f1 = document.getElementById("cary");
-  var f2 = document.getElementById("zero");
-  var f3 = document.getElementById("interupts");
-  var f4 = document.getElementById("decimal");
-  var f5 = document.getElementById("break");
-  var f6 = document.getElementById("unused");
-  var f7 = document.getElementById("overflow");
-  var f8 = document.getElementById("negative");
-  setFlagColor(f1, cpu.GetFlag(0));
-  setFlagColor(f2, cpu.GetFlag(1));
-  setFlagColor(f3, cpu.GetFlag(2));
-  setFlagColor(f4, cpu.GetFlag(3));
-  setFlagColor(f5, cpu.GetFlag(4));
-  setFlagColor(f6, cpu.GetFlag(5));
-  setFlagColor(f7, cpu.GetFlag(6));
-  setFlagColor(f8, cpu.GetFlag(7));
-};
-
-updateFlags();
-
-var changePage = function changePage(delta) {
-  var n = parseInt(currentPage, 16) + delta;
-
-  if (n < 0) {
-    n = 0x00;
-  }
-
-  if (n > 0xff) {
-    n = 0xff;
-  }
-
-  currentPage = n.toString(16);
-  renderPage();
-  updateTitle();
-};
-
-var renderPage = function renderPage() {
-  if (view != null) {
-    view.innerHTML = "<h2>" + _6502debug_1.printPage(cpu, parseInt(currentPage, 16)) + "</h2>";
-  }
-};
-
-renderPage();
-var step = document.getElementById("step");
-
-if (step != null) {
-  step.onclick = function () {
-    cpu.step();
-    updateFlags();
-    renderPage();
-    updateRegisters();
   };
+
+  Bus.prototype.cpuRead = function (adress, readOnly) {
+    if (adress >= 0x0000 && adress <= 0x1fff) {
+      return this.cpuRAM[adress & 0x07ff];
+    } else if (adress >= 0x2000 && adress <= 0x3fff) {
+      return this.ppu.cpuRead(adress & 0x0007);
+    }
+
+    return 0x0;
+  };
+
+  Bus.prototype.insertCartridge = function (cart) {
+    this.cart = cart;
+    this.ppu.connectCartridge(cart);
+  };
+
+  Bus.prototype.reset = function () {
+    this.cpu.reset();
+    this.systemClockCounter = 0;
+  };
+
+  Bus.prototype.clock = function () {};
+
+  return Bus;
+}();
+
+exports.Bus = Bus;
+},{"./6502":"6502.ts","./PPU":"PPU.ts"}],"cartridge.ts":[function(require,module,exports) {
+"use strict";
+
+exports.__esModule = true;
+
+function openFile() {
+  return new Promise(function (resolve) {
+    var input = document.createElement("input");
+    input.style.display = "none";
+
+    if (input != null) {
+      input.type = "file";
+
+      input.onchange = function (_) {
+        if (input.files != null) {
+          var files = Array.from(input.files);
+          resolve(files[0]);
+        }
+      };
+
+      input.click();
+    }
+  });
 }
 
-var b1 = document.getElementById("back10");
+var Cardridge =
+/** @class */
+function () {
+  function Cardridge() {
+    var _this = this;
 
-if (b1 != null) {
-  b1.onclick = function () {
-    changePage(-16);
+    this.PRGMemory = [];
+    this.CHRMemory = [];
+    this.mapperID = 0;
+    this.PRGBanks = 0;
+    this.CHRBanks = 0;
+    var content = openFile();
+    content.then(function (content) {
+      content.text().then(function (text) {
+        console.log();
+        var LoadedHeader = {
+          name: text.substring(0, 4),
+          prg_chunks: text.charCodeAt(4),
+          chr_chunks: text.charCodeAt(5),
+          mapper1: text.charCodeAt(6),
+          mapper2: text.charCodeAt(7),
+          prg_ram_size: text.charCodeAt(8),
+          tv_system1: text.charCodeAt(9),
+          tv_system2: text.charCodeAt(10),
+          unused: text.substr(11, 4).split("").map(function (v) {
+            return v.charCodeAt(0);
+          })
+        };
+        _this.mapperID = LoadedHeader.mapper2 >> 4 << 4 | LoadedHeader.mapper1 >> 4;
+        var filetype = 1;
+
+        switch (filetype) {
+          case 1:
+            {
+              break;
+            }
+
+          case 2:
+            {
+              break;
+            }
+
+          case 3:
+            {
+              break;
+            }
+        }
+
+        console.log(LoadedHeader);
+      });
+    });
+  }
+
+  Cardridge.prototype.cpuWrite = function (adress, data) {};
+
+  Cardridge.prototype.cpuRead = function (adress, readOnly) {};
+
+  Cardridge.prototype.ppuWrite = function (adress, data) {};
+
+  Cardridge.prototype.ppuRead = function (adress, readOnly) {};
+
+  return Cardridge;
+}();
+
+exports.Cardridge = Cardridge;
+},{}],"main.ts":[function(require,module,exports) {
+"use strict";
+
+exports.__esModule = true;
+
+var bus_1 = require("./bus");
+
+var cartridge_1 = require("./cartridge");
+
+var b = new bus_1.Bus();
+console.log(b);
+var romload = document.getElementById("romload");
+
+if (romload != null) {
+  romload.onclick = function () {
+    b.insertCartridge(new cartridge_1.Cardridge());
   };
-}
-
-var b2 = document.getElementById("back1");
-
-if (b2 != null) {
-  b2.onclick = function () {
-    changePage(-1);
-  };
-}
-
-var b3 = document.getElementById("next10");
-
-if (b3 != null) {
-  b3.onclick = function () {
-    changePage(16);
-  };
-}
-
-var b4 = document.getElementById("next1");
-
-if (b4 != null) {
-  b4.onclick = function () {
-    changePage(1);
-  };
-}
-},{"./6502":"6502.ts","./6502debug":"6502debug.ts"}],"C:/Users/lucde/AppData/Roaming/npm/node_modules/parcel/src/builtins/hmr-runtime.js":[function(require,module,exports) {
+} // const cpu = new CPU6502();
+// /*
+//     *=$8000
+//     LDX #10
+//     STX $0000
+//     LDX #3
+//     STX $0001
+//     LDY $0000
+//     LDA #0
+//     CLC
+//     loop
+//     ADC $0001
+//     DEY
+//     DNE loop
+//     STA $0002
+//     NOP
+//     NOP
+//     NOP
+// */
+// const program = [
+//   //1:00:16
+//   0xa2, // store 0x0a to register A
+//   0x0a,
+//   0x8e, // store register A to 0x0000
+//   0x00,
+//   0x00,
+//   0xa2, // store 0x03 in register A
+//   0x03,
+//   0x8e, // store register A to 0x0001
+//   0x01,
+//   0x00,
+//   0xac, // store 0x0000 to acc
+//   0x00,
+//   0x00,
+//   0xa9, // load 00 into acc
+//   0x00,
+//   0x18, // clear carry
+//   0x6d, // add bit at 0001 to acc
+//   0x01,
+//   0x00,
+//   0x88,
+//   0xd0, // branch back
+//   0xfa, //
+//   0x8d,
+//   0x02,
+//   0x00,
+//   0xea,
+//   0xea,
+//   0xea,
+// ];
+// cpu.loadProgram(0x8000, program);
+// let view = document.getElementById("view");
+// let viewBar = document.getElementById("viewbar");
+// let viewTitle = document.getElementById("viewtitle");
+// let currentPage = "80";
+// let running = false;
+// const updateTitle = () => {
+//   if (viewTitle != null) {
+//     const newTitle = fillInHex(currentPage, 2);
+//     viewTitle.innerHTML = `<h1><b>View on page 0x${newTitle}:</h1></b>`;
+//   }
+// };
+// updateTitle();
+// if (viewBar != null) {
+//   viewBar.innerHTML = `
+//   <button id="back10"><<</button>
+//   <button id="back1"><</button>
+//   <button id="next1">></button>
+//   <button id="next10">>></button>
+//   <button id="step">step</button>
+//   <button id="run">run</button>
+//   <button id="stop">stop</button>`;
+// }
+// const setFlagColor = (el: HTMLElement | null, active: boolean) => {
+//   if (el != null) {
+//     if (active) {
+//       el.classList.remove("red");
+//       el.classList.add("green");
+//     } else {
+//       el.classList.remove("green");
+//       el.classList.add("red");
+//     }
+//   }
+// };
+// const updateRegisters = () => {
+//   const a = document.getElementById("regA");
+//   const x = document.getElementById("regX");
+//   const y = document.getElementById("regY");
+//   if (a != null && x != null && y != null) {
+//     x.innerHTML = "X = 0x" + fillInHex(cpu.x.toString(16), 2);
+//     y.innerHTML = "Y = 0x" + fillInHex(cpu.y.toString(16), 2);
+//     a.innerHTML = "A = 0x" + fillInHex(cpu.a.toString(16), 2);
+//   }
+// };
+// updateRegisters();
+// const updateFlags = () => {
+//   const f1 = document.getElementById("cary");
+//   const f2 = document.getElementById("zero");
+//   const f3 = document.getElementById("interupts");
+//   const f4 = document.getElementById("decimal");
+//   const f5 = document.getElementById("break");
+//   const f6 = document.getElementById("unused");
+//   const f7 = document.getElementById("overflow");
+//   const f8 = document.getElementById("negative");
+//   setFlagColor(f1, cpu.GetFlag(0));
+//   setFlagColor(f2, cpu.GetFlag(1));
+//   setFlagColor(f3, cpu.GetFlag(2));
+//   setFlagColor(f4, cpu.GetFlag(3));
+//   setFlagColor(f5, cpu.GetFlag(4));
+//   setFlagColor(f6, cpu.GetFlag(5));
+//   setFlagColor(f7, cpu.GetFlag(6));
+//   setFlagColor(f8, cpu.GetFlag(7));
+// };
+// updateFlags();
+// const changePage = (delta: number) => {
+//   let n = parseInt(currentPage, 16) + delta;
+//   if (n < 0) {
+//     n = 0x00;
+//   }
+//   if (n > 0xff) {
+//     n = 0xff;
+//   }
+//   currentPage = n.toString(16);
+//   renderPage();
+//   updateTitle();
+// };
+// const renderPage = () => {
+//   if (view != null) {
+//     view.innerHTML =
+//       "<h2>" + printPage(cpu, parseInt(currentPage, 16)) + "</h2>";
+//   }
+// };
+// renderPage();
+// let step = document.getElementById("step");
+// if (step != null) {
+//   step.onclick = () => {
+//     cpu.step();
+//     updateFlags();
+//     renderPage();
+//     updateRegisters();
+//   };
+// }
+// let b1 = document.getElementById("back10");
+// if (b1 != null) {
+//   b1.onclick = () => {
+//     changePage(-16);
+//   };
+// }
+// let b2 = document.getElementById("back1");
+// if (b2 != null) {
+//   b2.onclick = () => {
+//     changePage(-1);
+//   };
+// }
+// let b3 = document.getElementById("next10");
+// if (b3 != null) {
+//   b3.onclick = () => {
+//     changePage(16);
+//   };
+// }
+// let b4 = document.getElementById("next1");
+// if (b4 != null) {
+//   b4.onclick = () => {
+//     changePage(1);
+//   };
+// }
+// const autoRun = () => {
+//   cpu.step();
+//   updateFlags();
+//   renderPage();
+//   updateRegisters();
+//   if (running) {
+//     window.requestAnimationFrame(autoRun);
+//   }
+// };
+// let brun = document.getElementById("run");
+// if (brun != null) {
+//   brun.onclick = () => {
+//     running = true;
+//     autoRun();
+//   };
+// }
+// let bstop = document.getElementById("stop");
+// if (bstop != null) {
+//   bstop.onclick = () => {
+//     running = false;
+//   };
+// }
+},{"./bus":"bus.ts","./cartridge":"cartridge.ts"}],"C:/Users/lucde/AppData/Roaming/npm/node_modules/parcel/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
 var OldModule = module.bundle.Module;
@@ -1554,7 +1776,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "62685" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "58205" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};

@@ -19,7 +19,7 @@ interface Instruction {
 }
 
 export class CPU6502 {
-  bus: Bus = new Bus();
+  bus: Bus | undefined;
 
   fetched = 0;
   addr_rel = 0;
@@ -891,11 +891,6 @@ export class CPU6502 {
     0xff: [this.XXX, this.IMP, 7],
   };
 
-  // public methods
-  connectBus(bus: Bus) {
-    this.bus = bus;
-  }
-
   GetFlag(flagName: Flags) {
     switch (flagName) {
       case Flags.B:
@@ -969,10 +964,12 @@ export class CPU6502 {
   }
 
   write(adress: number, data: number) {
-    this.bus.write(adress, data);
+    if (this.bus != undefined) {
+      this.bus.cpuWrite(adress, data);
+    }
   }
 
   read(adress: number, readOnly: boolean = false) {
-    return this.bus.read(adress, readOnly);
+    return this.bus != undefined ? this.bus.cpuRead(adress, readOnly) : 0x00;
   }
 }

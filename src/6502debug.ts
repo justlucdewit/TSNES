@@ -21,7 +21,7 @@ export function printPage(cpu: CPU6502, page: number) {
   let ret = "";
   for (let i = 0; i < 16; i++) {
     const n = fillInHex(((page << 8) | (i << 4)).toString(16).toUpperCase(), 4);
-    const row = getRow(cpu.bus.RAM, parseInt(n, 16), cpu.pc);
+    const row = getRow(cpu.bus.cpuRAM, parseInt(n, 16), cpu.pc);
     ret += `[${n}]: ${row}<br />`;
   }
   return ret;
