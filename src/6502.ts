@@ -27,6 +27,7 @@ export class CPU6502 {
   opcode = 0;
   cycles = 0;
   status = 0x00;
+  totalCycles = 0;
 
   // registers
   flags = {
@@ -85,7 +86,7 @@ export class CPU6502 {
     this.addr_rel = this.read(this.pc);
     this.pc++;
     if (this.addr_rel & 0x80) {
-      this.addr_rel |= 0xff00;
+      this.addr_rel = -128 + (this.addr_rel ^ 0x80);
     }
     return 0;
   };
@@ -194,6 +195,7 @@ export class CPU6502 {
       this.cycles += extraCycles1 & extraCycles2;
     }
     this.cycles--;
+    this.totalCycles++;
   };
   reset = () => {
     this.a = 0;
@@ -266,7 +268,7 @@ export class CPU6502 {
   //opcodes
 
   ADC = () => {
-    // addition
+    // addition to acc
     this.fetch();
     const result = this.a + this.fetched + (this.GetFlag(Flags.C) ? 1 : 0);
     this.SetFlag(Flags.C, result > 255); // set carry bit
@@ -451,9 +453,17 @@ export class CPU6502 {
     return 0;
   };
   DEX = () => {
+    // decrement X
+    this.x--;
+    this.SetFlag(Flags.Z, this.x === 0x00);
+    this.SetFlag(Flags.N, (this.x & 0x80) !== 0);
     return 0;
   };
   DEY = () => {
+    // decrement Y
+    this.y--;
+    this.SetFlag(Flags.Z, this.y === 0x00);
+    this.SetFlag(Flags.N, (this.y & 0x80) !== 0);
     return 0;
   };
   EOR = () => {
@@ -463,11 +473,20 @@ export class CPU6502 {
     return 0;
   };
   INX = () => {
+    // increment X
+    this.x++;
+    this.SetFlag(Flags.Z, this.x === 0x00);
+    this.SetFlag(Flags.N, (this.x & 0x80) !== 0);
     return 0;
   };
   INY = () => {
+    // increment Y
+    this.y++;
+    this.SetFlag(Flags.Z, this.y === 0x00);
+    this.SetFlag(Flags.N, (this.y & 0x80) !== 0);
     return 0;
   };
+
   JMP = () => {
     return 0;
   };
@@ -575,12 +594,18 @@ export class CPU6502 {
     return 0;
   };
   STA = () => {
+    // store accumulator
+    this.write(this.addr_abs, this.a);
     return 0;
   };
   STX = () => {
+    // store x
+    this.write(this.addr_abs, this.x);
     return 0;
   };
   STY = () => {
+    // store y
+    this.write(this.addr_abs, this.y);
     return 0;
   };
   TAX = () => {
@@ -934,6 +959,13 @@ export class CPU6502 {
       this.write(base + bitIndex, program[bitIndex]);
     }
     this.pc = base;
+  }
+
+  step() {
+    this.cycle();
+    while (this.cycles != 0) {
+      this.cycle();
+    }
   }
 
   write(adress: number, data: number) {

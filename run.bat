@@ -1,2 +1,0 @@
-tsc main
-node main

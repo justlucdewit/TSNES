@@ -1,0 +1,73 @@
+<html>
+  <head>
+    <title>TSNES</title>
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <style rel="stylesheet" type="text/css">
+      * {
+        font-family: monospace;
+      }
+
+      h1,
+      h3 {
+        margin: 5px;
+      }
+
+      #viewtitle h1 {
+        margin-top: 40px;
+      }
+
+      #flags span {
+        width: 50px;
+        padding: 5px;
+        margin: 0px;
+        font-size: 20px;
+      }
+
+      #flags {
+        margin-bottom: 10px;
+      }
+
+      #regA,
+      #regX,
+      #regY {
+        font-size: 20px;
+      }
+
+      .red {
+        background-color: red;
+      }
+
+      .green {
+        background-color: green;
+      }
+
+      .blue {
+        background-color: blue;
+        color: white;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>TSNES Emulator</h1>
+    <h3>made by Luc de Wit</h3>
+    <span id="viewtitle"></span>
+    <span id="viewbar"></span>
+    <div id="view"></div>
+    <div id="flags">
+      <span id="cary">cary</span>
+      <span id="zero">zero</span>
+      <span id="interupts">interupts</span>
+      <span id="decimal">decimal</span>
+      <span id="break">break</span>
+      <span id="unused">unused</span>
+      <span id="overflow">overflow</span>
+      <span id="negative">negative</span>
+    </div>
+
+    <div id="regA"></div>
+    <div id="regX"></div>
+    <div id="regY"></div>
+    <script src="dist/main.js"></script>
+  </body>
+</html>
