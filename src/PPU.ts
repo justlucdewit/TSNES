@@ -66,11 +66,22 @@ export class PPU {
     return data;
   }
 
-  ppuWrite(adress: number, data: number) {}
+  ppuWrite(adress: number, data: number) {
+    adress &= 0x3fff;
+    
+    if (this.cart != undefined && this.cart.ppuWrite(adress, data)){
+
+    }
+  }
 
   ppuRead(adress: number, readOnly: boolean = false) {
     let data = 0x00;
     adress &= 0x3fff;
+
+    if (this.cart != undefined && this.cart.ppuRead(adress, data)){
+
+    }
+
     return data;
   }
 

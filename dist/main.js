@@ -1376,7 +1376,11 @@ function () {
     return data;
   };
 
-  PPU.prototype.ppuWrite = function (adress, data) {};
+  PPU.prototype.ppuWrite = function (adress, data) {
+    adress &= 0x3fff;
+
+    if (this.cart != undefined && this.cart.ppuWrite(adress, data)) {}
+  };
 
   PPU.prototype.ppuRead = function (adress, readOnly) {
     if (readOnly === void 0) {
@@ -1385,6 +1389,9 @@ function () {
 
     var data = 0x00;
     adress &= 0x3fff;
+
+    if (this.cart != undefined && this.cart.ppuRead(adress, data)) {}
+
     return data;
   };
 
@@ -1420,7 +1427,7 @@ function () {
   }
 
   Bus.prototype.cpuWrite = function (adress, data) {
-    if (adress >= 0x00000 && adress <= 0x1fff) {
+    if (this.cart != undefined && this.cart.cpuWrite(adress, data)) {} else if (adress >= 0x00000 && adress <= 0x1fff) {
       this.cpuRAM[adress & 0x07ff] = data;
     } else if (adress >= 0x2000 && adress <= 0x3fff) {
       this.ppu.cpuWrite(adress & 0x0007, data);
@@ -1428,6 +1435,8 @@ function () {
   };
 
   Bus.prototype.cpuRead = function (adress, readOnly) {
+    if (this.cart != undefined && this.cart.cpuRead(adress)) {}
+
     if (adress >= 0x0000 && adress <= 0x1fff) {
       return this.cpuRAM[adress & 0x07ff];
     } else if (adress >= 0x2000 && adress <= 0x3fff) {
@@ -1453,7 +1462,7 @@ function () {
 }();
 
 exports.Bus = Bus;
-},{"./6502":"6502.ts","./PPU":"PPU.ts"}],"cartridge.ts":[function(require,module,exports) {
+},{"./6502":"6502.ts","./PPU":"PPU.ts"}],"tools/openFile.ts":[function(require,module,exports) {
 "use strict";
 
 exports.__esModule = true;
@@ -1478,21 +1487,138 @@ function openFile() {
   });
 }
 
+exports.openFile = openFile;
+},{}],"mapper.ts":[function(require,module,exports) {
+"use strict";
+
+exports.__esModule = true;
+
+var Mapper =
+/** @class */
+function () {
+  function Mapper(prgBanks, chrBanks) {
+    this.prgBanks = 0;
+    this.chrBanks = 0;
+    this.prgBanks = prgBanks;
+    this.chrBanks = chrBanks;
+  }
+
+  Mapper.prototype.cpuMapRead = function (addres, mapped_address) {
+    return false;
+  };
+
+  Mapper.prototype.cpuMapWrite = function (addres, mapped_address) {
+    return false;
+  };
+
+  Mapper.prototype.ppuMapRead = function (addres, mapped_address) {
+    return false;
+  };
+
+  Mapper.prototype.ppuMapWrite = function (addres, mapped_address) {
+    return false;
+  };
+
+  return Mapper;
+}();
+
+exports.Mapper = Mapper;
+},{}],"mappers/mapper000.ts":[function(require,module,exports) {
+"use strict";
+
+var __extends = this && this.__extends || function () {
+  var extendStatics = Object.setPrototypeOf || {
+    __proto__: []
+  } instanceof Array && function (d, b) {
+    d.__proto__ = b;
+  } || function (d, b) {
+    for (var p in b) {
+      if (b.hasOwnProperty(p)) d[p] = b[p];
+    }
+  };
+
+  return function (d, b) {
+    extendStatics(d, b);
+
+    function __() {
+      this.constructor = d;
+    }
+
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+  };
+}();
+
+exports.__esModule = true;
+
+var mapper_1 = require("../mapper");
+
+var Mapper000 =
+/** @class */
+function (_super) {
+  __extends(Mapper000, _super);
+
+  function Mapper000() {
+    return _super !== null && _super.apply(this, arguments) || this;
+  }
+
+  Mapper000.prototype.cpuMapRead = function (addres, mapped_address) {
+    if (addres >= 0x8000 && addres <= 0xFFFF) {
+      mapped_address.value = addres & (this.prgBanks > 1 ? 0x7FFF : 0x3FFF); // 32 or 64k ROM
+
+      return true;
+    }
+
+    return false;
+  };
+
+  Mapper000.prototype.cpuMapWrite = function (addres, mapped_address) {
+    if (addres >= 0x8000 && addres <= 0xFFFF) {
+      mapped_address.value = addres & (this.prgBanks > 1 ? 0x7FFF : 0x3FFF); // 32 or 64k ROM
+
+      return true;
+    }
+
+    return false;
+  };
+
+  Mapper000.prototype.ppuMapRead = function (addres, mapped_address) {
+    if (addres >= 0x0000 && addres <= 0x1FFF) {
+      mapped_address.value = addres;
+      return true;
+    }
+
+    return false;
+  };
+
+  Mapper000.prototype.ppuMapWrite = function (addres, mapped_address) {
+    return false;
+  };
+
+  return Mapper000;
+}(mapper_1.Mapper);
+
+exports.Mapper000 = Mapper000;
+},{"../mapper":"mapper.ts"}],"cartridge.ts":[function(require,module,exports) {
+"use strict";
+
+exports.__esModule = true;
+
+var openFile_1 = require("./tools/openFile");
+
+var mapper000_1 = require("./mappers/mapper000");
+
 var Cardridge =
 /** @class */
 function () {
   function Cardridge() {
     var _this = this;
 
-    this.PRGMemory = [];
-    this.CHRMemory = [];
     this.mapperID = 0;
     this.PRGBanks = 0;
     this.CHRBanks = 0;
-    var content = openFile();
+    var content = openFile_1.openFile();
     content.then(function (content) {
       content.text().then(function (text) {
-        console.log();
         var LoadedHeader = {
           name: text.substring(0, 4),
           prg_chunks: text.charCodeAt(4),
@@ -1510,8 +1636,28 @@ function () {
         var filetype = 1;
 
         switch (filetype) {
+          case 0:
+            {
+              break;
+            }
+
           case 1:
             {
+              // load program data
+              _this.PRGBanks = LoadedHeader.prg_chunks;
+              _this.PRGMemory = new Uint8Array(_this.PRGBanks * 16384);
+
+              for (var i = 0; i < _this.PRGMemory.length; i++) {
+                _this.PRGMemory[i] = text.charCodeAt(i + 526);
+              }
+
+              _this.CHRBanks = LoadedHeader.chr_chunks;
+              _this.CHRMemory = new Uint8Array(_this.CHRBanks * 8192);
+
+              for (var i = 0; i < _this.CHRMemory.length; i++) {
+                _this.CHRMemory[i] = text.charCodeAt(i + 526 + _this.PRGMemory.length);
+              }
+
               break;
             }
 
@@ -1519,31 +1665,32 @@ function () {
             {
               break;
             }
-
-          case 3:
-            {
-              break;
-            }
         }
 
-        console.log(LoadedHeader);
+        switch (_this.mapperID) {
+          case 0:
+            _this.mapper = new mapper000_1.Mapper000(_this.PRGBanks, _this.CHRBanks);
+        }
+
+        console.log(_this.PRGMemory);
+        console.log(_this.CHRMemory);
       });
     });
   }
 
   Cardridge.prototype.cpuWrite = function (adress, data) {};
 
-  Cardridge.prototype.cpuRead = function (adress, readOnly) {};
+  Cardridge.prototype.cpuRead = function (adress, data) {};
 
   Cardridge.prototype.ppuWrite = function (adress, data) {};
 
-  Cardridge.prototype.ppuRead = function (adress, readOnly) {};
+  Cardridge.prototype.ppuRead = function (adress, data) {};
 
   return Cardridge;
 }();
 
 exports.Cardridge = Cardridge;
-},{}],"main.ts":[function(require,module,exports) {
+},{"./tools/openFile":"tools/openFile.ts","./mappers/mapper000":"mappers/mapper000.ts"}],"main.ts":[function(require,module,exports) {
 "use strict";
 
 exports.__esModule = true;
@@ -1776,7 +1923,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "58205" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "51373" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
